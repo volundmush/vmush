@@ -9,7 +9,7 @@ OS_WINDOWS = os.name == "nt"
 
 def get_requirements():
     """
-    To update the requirements for PyMUSH, edit the requirements.txt file.
+    To update the requirements for vmush, edit the requirements.txt file.
     """
     with open("requirements.txt", "r") as f:
         req_lines = f.readlines()
@@ -27,28 +27,28 @@ def get_scripts():
     this means creating a .bat file.
     """
     if OS_WINDOWS:
-        batpath = os.path.join("bin", "windows", "pymush.bat")
-        scriptpath = os.path.join(sys.prefix, "Scripts", "pymush_launcher.py")
+        batpath = os.path.join("bin", "windows", "vmush.bat")
+        scriptpath = os.path.join(sys.prefix, "Scripts", "vmush_launcher.py")
         with open(batpath, "w") as batfile:
             batfile.write('@"%s" "%s" %%*' % (sys.executable, scriptpath))
-        return [batpath, os.path.join("bin", "windows", "pymush_launcher.py")]
+        return [batpath, os.path.join("bin", "windows", "vmush_launcher.py")]
     else:
-        return [os.path.join("bin", "unix", "pymush")]
+        return [os.path.join("bin", "unix", "vmush")]
 
 # setup the package
 setup(
-    name="pymush",
+    name="vmush",
     version="0.0.1",
     author="Volund",
     maintainer="Volund",
-    url="https://github.com/volundmush/pymush",
+    url="https://github.com/volundmush/vmush",
     description="",
     license="???",
     long_description="""
     
     """,
     install_requires=get_requirements(),
-    packages=["pymush"],
+    packages=["vmush"],
     zip_safe=False,
     scripts=get_scripts(),
     classifiers=[
@@ -56,8 +56,8 @@ setup(
     ],
     python_requires=">=3.7",
     project_urls={
-        "Source": "https://github.com/volundmush/pymush",
-        "Issue tracker": "https://github.com/volundmush/pymush/issues",
+        "Source": "https://github.com/volundmush/vmush",
+        "Issue tracker": "https://github.com/volundmush/vmush/issues",
         "Patreon": "https://www.patreon.com/volund",
     },
 )

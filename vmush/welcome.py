@@ -1,5 +1,5 @@
 from mudstring.encodings.pennmush import ansi_fun
-from pymush.utils.welcome import instructions, instructions2, instructions3, instructions4
+from pymush.welcome import instructions, instructions2, instructions3, instructions4
 
 logo = ansi_fun("hy", r"""
            ___________/\___________                   

@@ -46,8 +46,9 @@ class VolDB(PennDB):
 
 
 class Importer:
-    def __init__(self, connection, path):
+    def __init__(self, entry, connection, path):
         self.db = VolDB.from_outdb(path)
+        self.entry = entry
         self.connection = connection
         self.game = connection.game
         connection.penn = self
@@ -60,7 +61,7 @@ class Importer:
             raise ValueError(f"{mode} does not map to a type class!")
         if dbobj.id in self.game.objects:
             raise ValueError(f"DBREF conflict for #{dbobj.id}, cannot continue!")
-        obj = type_class(self.game, dbobj.id, dbobj.name)
+        obj = type_class(self.game, dbobj.id, dbobj.created, dbobj.name)
         obj.created = dbobj.created
         obj.modified = dbobj.modified
         for key, attr in dbobj.attributes.items():
@@ -90,32 +91,26 @@ class Importer:
 
             if (zone := self.obj_map.get(old.zone, None)):
                 new.zone = zone
-                zone.zone_of.add(new)
 
             if old.type == 8:  # a player
                 if (parent := self.obj_map.get(old.parent, None)):
                     if parent.type_name == 'USER':
-                        parent.add_character(new)
+                        new.owner = parent
             else:
                 if (parent := self.obj_map.get(old.parent, None)):
                     new.parent = parent
-                    parent.parent_of.add(new)
                 if (owner := self.obj_map.get(old.owner, None)):
-                    new.owner = owner
-                    owner.owner_of.add(new)
+                    if not new.root_owner:
+                        new.owner = owner
 
             if old.type == 4:  # an exit
                 if (destination := self.obj_map.get(old.location, None)):
-                    new.destination = (destination, '', None)
+                    new.destination = destination
                 if (location := self.obj_map.get(old.exits, None)):
-                    location.contents.add('exits', new, None)
-            elif old.type == 8: # a player
-                if (location := self.obj_map.get(old.location, None)):
-                    new.set_saved_location('_logout', (location, '', None))
+                    new.namespace = location
             else:
                 if (location := self.obj_map.get(old.location, None)):
-                    location.contents.add('', new, None)
-
+                    new.location = location
 
     def process_finalize(self):
         for old, new in self.old_new.items():
@@ -127,9 +122,8 @@ class Importer:
                     elif 'ROYALTY' in old.flags:
                         account.admin_level = max(account.admin_level, 8)
                     elif (va := old.attributes.get('mush', 'V`ADMIN')):
-                        if va == '1':
+                        if self.entry.parser.truthy(va):
                             account.admin_level = max(account.admin_level, 6)
-
 
     def run(self):
         try:
@@ -138,4 +132,6 @@ class Importer:
             self.process_finalize()
             self.connection.msg("IMPORT COMPLETE!?")
         except Exception as e:
+            import traceback, sys
+            traceback.print_exc(file=sys.stdout)
             self.connection.msg(f"SOMETHING WENT WRONG: {e}")

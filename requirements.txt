@@ -1,2 +1,2 @@
 pymush
-supersqlite
+django >= 3.2

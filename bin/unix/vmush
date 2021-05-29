@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-
-import vmush
-import os
-from athanor.launcher import AthanorLauncher
-
-
-class VMUSHLauncher(AthanorLauncher):
-    name = "PyMUSH"
-    root = os.path.abspath(os.path.dirname(vmush.__file__))
-    game_template = os.path.abspath(
-        os.path.join(os.path.abspath(os.path.dirname(vmush.__file__)), 'game_template'))
+from vmush.launcher import VMUSHLauncher
 
 
 if __name__ == "__main__":
