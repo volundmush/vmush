@@ -18,7 +18,7 @@ class ImportCommand(Command):
         return True
 
     def execute(self):
-        penn = Importer(self.entry.enactor, 'outdb')
+        penn = Importer(self.interpreter, 'outdb')
         self.msg(f"Database loaded: {len(penn.db.objects)} objects detected!")
         penn.run()
 
@@ -41,7 +41,7 @@ class PennConnect(_LoginCommand):
 
     def execute(self):
         name, password = self.parse_login(self.usage)
-        candidates = self.game.type_index[self.game.obj_classes['PLAYER']]
+        candidates = self.game.type_index['PLAYER']
         character, error = self.game.search_objects(name, candidates=candidates, exact=True)
         if error:
             raise CommandException("Sorry, that was an incorrect username or password.")
@@ -51,17 +51,22 @@ class PennConnect(_LoginCommand):
             raise CommandException("Sorry, that was an incorrect username or password.")
         if not check_password(old_hash_attr.value.plain, password):
             raise CommandException("Sorry, that was an incorrect username or password.")
-        if not (acc := character.account):
-            raise CommandException("Character found! However this character has no account. To continue, create an account and bind the character after logging in.")
-        self.entry.connection.login(acc)
+        root_owner = character.root_owner
+        if not root_owner:
+            raise CommandException(
+                "Character found! However this character has no account. To continue, create an account and bind the character after logging in.")
+        if not root_owner.type_name == 'USER':
+            raise CommandException(
+                "Character found! However this character has no account. To continue, create an account and bind the character after logging in.")
+        self.entry.connection.login(root_owner)
 
         self.msg(text=f"Your Account password has been set to the password you entered just now.\n"
                       f"Next time, you can login using the normal connect command.\n"
                       f"pconnect will not work on your currently bound characters again.\n"
                       f"If any imported characters are not appearing, try @pbind <name>=<password>\n"
                       f"Should that fail, contact an administrator.")
-        acc.change_password(password)
-        for char in acc.characters:
+        root_owner.change_password(password)
+        for char in root_owner._owner_of_type['PLAYER'].values():
             char.attributes.wipe('XYXXY')
 
 

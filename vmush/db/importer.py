@@ -1,5 +1,6 @@
 from . flatfile import PennDB
 from athanor.utils import partial_match
+from pymush.utils.text import truthy
 
 
 class VolDB(PennDB):
@@ -46,12 +47,13 @@ class VolDB(PennDB):
 
 
 class Importer:
-    def __init__(self, entry, connection, path):
+    def __init__(self, interpreter, path):
         self.db = VolDB.from_outdb(path)
-        self.entry = entry
-        self.connection = connection
-        self.game = connection.game
-        connection.penn = self
+        self.interpreter = interpreter
+        self.entry = interpreter.entry
+        self.connection = interpreter.parser.frame.enactor
+        self.game = self.connection.game
+        self.connection.penn = self
         self.complete = set()
         self.obj_map = dict()
         self.old_new = dict()
@@ -72,8 +74,7 @@ class Importer:
                 obj.attributes.set_or_create(key, attr.value)
         self.obj_map[dbobj.id] = obj
         self.old_new[dbobj] = obj
-        self.game.objects[dbobj.id] = obj
-        self.game.type_index[type_class].add(obj)
+        self.game.register_obj(obj)
         return obj
 
     def import_skeleton(self):
@@ -100,14 +101,25 @@ class Importer:
                 if (parent := self.obj_map.get(old.parent, None)):
                     new.parent = parent
                 if (owner := self.obj_map.get(old.owner, None)):
-                    if not new.root_owner:
+                    if not new.is_root_owner:
                         new.owner = owner
 
             if old.type == 4:  # an exit
                 if (destination := self.obj_map.get(old.location, None)):
                     new.destination = destination
                 if (location := self.obj_map.get(old.exits, None)):
-                    new.namespace = location
+                    try:
+                        new.namespace = location
+                    except ValueError as err:
+                        addnum = 1
+                        while True:
+                            try:
+                                new.name = f"{new.name}{addnum}"
+                                new.namespace = location
+                                break
+                            except ValueError as err:
+                                addnum += 1
+                                continue
             else:
                 if (location := self.obj_map.get(old.location, None)):
                     new.location = location
@@ -115,14 +127,14 @@ class Importer:
     def process_finalize(self):
         for old, new in self.old_new.items():
             if old.type == 8:
-                if new.account:
-                    account = new.account
+                account = new.root_owner
+                if account and account.type_name == 'USER':
                     if 'WIZARD' in old.flags:
                         account.admin_level = max(account.admin_level, 10)
                     elif 'ROYALTY' in old.flags:
                         account.admin_level = max(account.admin_level, 8)
-                    elif (va := old.attributes.get('mush', 'V`ADMIN')):
-                        if self.entry.parser.truthy(va):
+                    elif (va := old.attributes.get('V`ADMIN')):
+                        if truthy(va.value):
                             account.admin_level = max(account.admin_level, 6)
 
     def run(self):
