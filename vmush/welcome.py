@@ -1,6 +1,8 @@
 from mudstring.encodings.pennmush import ansi_fun
 from pymush.welcome import instructions, instructions2, instructions3, instructions4
 
+# Okay, so this isn't Exalted MUSH. but it's a pretty good test for now.
+
 logo = ansi_fun("hy", r"""
            ___________/\___________                   
          __\      __  /\  __      /_____________________________________

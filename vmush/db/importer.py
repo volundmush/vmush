@@ -1,6 +1,6 @@
-from . flatfile import PennDB
 from athanor.utils import partial_match
 from pymush.utils.text import truthy
+from . flatfile import PennDB
 
 
 class VolDB(PennDB):
