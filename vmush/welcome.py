@@ -3,7 +3,10 @@ from pymush.welcome import instructions, instructions2, instructions3, instructi
 
 # Okay, so this isn't Exalted MUSH. but it's a pretty good test for now.
 
-logo = ansi_fun("hy", r"""
+logo = (
+    ansi_fun(
+        "hy",
+        r"""
            ___________/\___________                   
          __\      __  /\  __      /_____________________________________
         |   ______\ \ || / /   /\    ____ ________ _______  ______      |
@@ -15,11 +18,23 @@ logo = ansi_fun("hy", r"""
         |   | |_____/ /\ \  ||    ||  | |__  ||     | |___   | |_/ |    |
         |   /______/ /||\ \/_|    |_\ /____\/__\   /______| /_____/     |
         |___      /_/ || \_\       _____________________________________|
-           /__________\/__________\                     """) + ansi_fun("hr", "M U S H") + ansi_fun("hy", """
+           /__________\/__________\                     """,
+    )
+    + ansi_fun("hr", "M U S H")
+    + ansi_fun(
+        "hy",
+        """
                       \\/
-------------------------------------------------------------------------------\n""")
+------------------------------------------------------------------------------\n""",
+    )
+)
 
 
-last_line = ansi_fun("hy", "------------------------------------------------------------------------------")
+last_line = ansi_fun(
+    "hy",
+    "------------------------------------------------------------------------------",
+)
 
-message = logo + instructions + instructions2 + instructions3 + instructions4 + last_line
+message = (
+    logo + instructions + instructions2 + instructions3 + instructions4 + last_line
+)

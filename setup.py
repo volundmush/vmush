@@ -38,8 +38,9 @@ def get_scripts():
 
 
 from os import path
+
 this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+with open(path.join(this_directory, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 
@@ -53,14 +54,12 @@ setup(
     description="",
     license="???",
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     install_requires=get_requirements(),
     packages=["vmush"],
     zip_safe=False,
     scripts=get_scripts(),
-    classifiers=[
-
-    ],
+    classifiers=[],
     python_requires=">=3.7",
     project_urls={
         "Source": "https://github.com/volundmush/vmush",

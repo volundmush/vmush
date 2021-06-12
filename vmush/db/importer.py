@@ -1,6 +1,6 @@
 from athanor.utils import partial_match
 from pymush.utils.text import truthy
-from . flatfile import PennDB
+from .flatfile import PennDB
 
 
 class VolDB(PennDB):
@@ -10,7 +10,13 @@ class VolDB(PennDB):
 
     def cobj(self, abbr):
         if self.ccp is None:
-            if not (code_object := partial_match("Core Code Parent <CCP>", self.objects.values(), key=lambda x: x.name)):
+            if not (
+                code_object := partial_match(
+                    "Core Code Parent <CCP>",
+                    self.objects.values(),
+                    key=lambda x: x.name,
+                )
+            ):
                 raise Exception("Oops. No Core Code Parent in database!")
             self.ccp = code_object
         if not (attr := self.ccp.get(f"COBJ`{abbr.upper()}")):
@@ -18,12 +24,12 @@ class VolDB(PennDB):
         return self.find_obj(attr.value.plain)
 
     def list_accounts(self):
-        if not (account_parent := self.cobj('accounts')):
+        if not (account_parent := self.cobj("accounts")):
             return dict()
         return {o.id: o for o in account_parent.children}
 
     def list_groups(self):
-        if not (group_parent := self.cobj('gop')):
+        if not (group_parent := self.cobj("gop")):
             return dict()
         return {o.id: o for o in group_parent.children}
 
@@ -43,7 +49,11 @@ class VolDB(PennDB):
         return self.list_index(2)
 
     def list_districts(self):
-        return {k: v for k, v in self.list_things().items() if v.get('D`DISTRICT', inherit=False)}
+        return {
+            k: v
+            for k, v in self.list_things().items()
+            if v.get("D`DISTRICT", inherit=False)
+        }
 
 
 class Importer:
@@ -67,8 +77,8 @@ class Importer:
         obj.created = dbobj.created
         obj.modified = dbobj.modified
         for key, attr in dbobj.attributes.items():
-            if key == 'ALIAS':
-                for a in [a for a in attr.value.plain.split(';') if a]:
+            if key == "ALIAS":
+                for a in [a for a in attr.value.plain.split(";") if a]:
                     obj.aliases.append(a)
             else:
                 obj.attributes.set_or_create(key, attr.value)
@@ -78,10 +88,15 @@ class Importer:
         return obj
 
     def import_skeleton(self):
-        for data, mode in ((self.db.list_accounts(), 'USER'), (self.db.list_groups(), 'FACTION'),
-                           (self.db.list_districts(), 'DISTRICT'), (self.db.list_players(), 'PLAYER'),
-                           (self.db.list_rooms(), 'ROOM'), (self.db.list_exits(), 'EXIT'),
-                           (self.db.list_things(), 'THING')):
+        for data, mode in (
+            (self.db.list_accounts(), "USER"),
+            (self.db.list_groups(), "FACTION"),
+            (self.db.list_districts(), "DISTRICT"),
+            (self.db.list_players(), "PLAYER"),
+            (self.db.list_rooms(), "ROOM"),
+            (self.db.list_exits(), "EXIT"),
+            (self.db.list_things(), "THING"),
+        ):
             for k, v in data.items():
                 if k in self.obj_map:
                     continue
@@ -90,24 +105,25 @@ class Importer:
     def process_reverse(self):
         for old, new in self.old_new.items():
 
-            if (zone := self.obj_map.get(old.zone, None)):
+            if (zone := self.obj_map.get(old.zone, None)) :
                 new.zone = zone
 
             if old.type == 8:  # a player
-                if (parent := self.obj_map.get(old.parent, None)):
-                    if parent.type_name == 'USER':
+                if (parent := self.obj_map.get(old.parent, None)) :
+                    if parent.type_name == "USER":
                         new.owner = parent
+                        new.namespace = parent
             else:
-                if (parent := self.obj_map.get(old.parent, None)):
+                if (parent := self.obj_map.get(old.parent, None)) :
                     new.parent = parent
-                if (owner := self.obj_map.get(old.owner, None)):
+                if (owner := self.obj_map.get(old.owner, None)) :
                     if not new.is_root_owner:
                         new.owner = owner
 
             if old.type == 4:  # an exit
-                if (destination := self.obj_map.get(old.location, None)):
+                if (destination := self.obj_map.get(old.location, None)) :
                     new.destination = destination
-                if (location := self.obj_map.get(old.exits, None)):
+                if (location := self.obj_map.get(old.exits, None)) :
                     try:
                         new.namespace = location
                     except ValueError as err:
@@ -121,21 +137,33 @@ class Importer:
                                 addnum += 1
                                 continue
             else:
-                if (location := self.obj_map.get(old.location, None)):
+                if (location := self.obj_map.get(old.location, None)) :
                     new.location = location
 
     def process_finalize(self):
         for old, new in self.old_new.items():
             if old.type == 8:
                 account = new.root_owner
-                if account and account.type_name == 'USER':
-                    if 'WIZARD' in old.flags:
-                        account.admin_level = max(account.admin_level, 10)
-                    elif 'ROYALTY' in old.flags:
-                        account.admin_level = max(account.admin_level, 8)
-                    elif (va := old.attributes.get('V`ADMIN')):
+                if account and account.type_name == "USER":
+                    if "WIZARD" in old.flags:
+                        account.alevel = (
+                            max(account._admin_level, 10)
+                            if account._admin_level is not None
+                            else 10
+                        )
+                    elif "ROYALTY" in old.flags:
+                        account.alevel = (
+                            max(account._admin_level, 8)
+                            if account._admin_level is not None
+                            else 8
+                        )
+                    elif (va := old.attributes.get("V`ADMIN")) :
                         if truthy(va.value):
-                            account.admin_level = max(account.admin_level, 6)
+                            account.alevel = (
+                                max(account._admin_level, 6)
+                                if account._admin_level is not None
+                                else 6
+                            )
 
     def run(self):
         try:
@@ -145,5 +173,6 @@ class Importer:
             self.connection.msg("IMPORT COMPLETE!?")
         except Exception as e:
             import traceback, sys
+
             traceback.print_exc(file=sys.stdout)
             self.connection.msg(f"SOMETHING WENT WRONG: {e}")

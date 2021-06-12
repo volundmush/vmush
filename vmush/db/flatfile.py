@@ -16,10 +16,9 @@ class ValType(IntEnum):
 
 
 class FlatLine:
-
     def __init__(self, text: str):
         self.text = text
-        self.header = text[0] in ('+', '~', '!', '*')
+        self.header = text[0] in ("+", "~", "!", "*")
         self.name = None
         self.value = None
         self.valtype: ValType = ValType.TEXT
@@ -29,8 +28,8 @@ class FlatLine:
                 self.value = int(text[1:])
                 self.valtype = ValType.DBREF
         else:
-            self.depth = len(text) - len(text.lstrip(' '))
-            name, value = text.lstrip(' ').split(" ", 1)
+            self.depth = len(text) - len(text.lstrip(" "))
+            name, value = text.lstrip(" ").split(" ", 1)
             self.name = name
             if value.startswith('"'):
                 self.value = value[1:-1]
@@ -117,11 +116,11 @@ class Flag:
         if line.name == "letter":
             self.letter = line.value
         elif line.name == "type":
-            self.type = set(line.value.split(' '))
+            self.type = set(line.value.split(" "))
         elif line.name == "perms":
-            self.perms = set(line.value.split(' '))
+            self.perms = set(line.value.split(" "))
         elif line.name == "negate_perms":
-            self.negate_perms = set(line.value.split(' '))
+            self.negate_perms = set(line.value.split(" "))
         elif line.name == "alias":
             self.aliases.add(line.value)
 
@@ -136,7 +135,7 @@ class Attribute:
 
     def set_line(self, line: FlatLine):
         if line.name == "flags":
-            self.flags = set(line.value.split(' '))
+            self.flags = set(line.value.split(" "))
         elif line.name == "creator":
             self.creator = line.value
         elif line.name == "data":
@@ -156,7 +155,7 @@ class ObjAttribute:
         if line.name == "owner":
             self.owner = line.value
         elif line.name == "flags":
-            self.flags = set(line.value.split(' '))
+            self.flags = set(line.value.split(" "))
         elif line.name == "derefs":
             self.derefs = line.value
         elif line.name == "value":
@@ -175,7 +174,7 @@ class ObjLock:
         if line.name == "creator":
             self.creator = line.value
         elif line.name == "flags":
-            self.flags = set(line.value.split(' '))
+            self.flags = set(line.value.split(" "))
         elif line.name == "derefs":
             self.derefs = line.value
         elif line.name == "value":
@@ -273,11 +272,11 @@ class DbObject:
         elif line.name == "type":
             self.type = line.value
         elif line.name == "flags":
-            self.flags = set(line.value.split(' '))
+            self.flags = set(line.value.split(" "))
         elif line.name == "powers":
-            self.powers = set(line.value.split(' '))
+            self.powers = set(line.value.split(" "))
         elif line.name == "warnings":
-            self.warnings = set(line.value.split(' '))
+            self.warnings = set(line.value.split(" "))
         elif line.name == "created":
             self.created = line.value
         elif line.name == "modified":
@@ -287,7 +286,7 @@ class DbObject:
 
     def get(self, attr, default=None, inherit=True):
         uattr = attr.upper()
-        if (found := self.attributes.get(uattr, None)):
+        if (found := self.attributes.get(uattr, None)) :
             return found
         else:
             if inherit and self.parent_obj:
@@ -299,7 +298,7 @@ class DbObject:
         if self.parent_obj:
             parent = self.parent_obj
             out.append(parent)
-            while (parent := parent.parent_obj):
+            while (parent := parent.parent_obj) :
                 out.append(parent)
         if reversed:
             out.reverse()
@@ -308,7 +307,7 @@ class DbObject:
     def lattr(self, pattern, inherit=False):
         if not pattern:
             return dict()
-        pattern = pattern.replace('`**', '`\S+').replace('*', '\w+')
+        pattern = pattern.replace("`**", "`\S+").replace("*", "\w+")
         re_pattern = re.compile(f"^{pattern}$", flags=re.IGNORECASE)
         out = dict()
         if inherit:
@@ -317,7 +316,9 @@ class DbObject:
         else:
             ancestors = [self]
         for ancestor in ancestors:
-            out.update({k: v for k, v in ancestor.attributes.items() if re_pattern.match(k)})
+            out.update(
+                {k: v for k, v in ancestor.attributes.items() if re_pattern.match(k)}
+            )
         return out
 
     def lattrp(self, pattern):
@@ -345,31 +346,31 @@ class PennDB:
         for k, v in self.objects.items():
             self.type_index[v.type].add(v)
 
-            if (found := self.objects.get(v.location, None)):
+            if (found := self.objects.get(v.location, None)) :
                 found.contents.add(v)
                 v.location_obj = found
 
-            if (found := self.objects.get(v.exits, None)):
+            if (found := self.objects.get(v.exits, None)) :
                 v.exits_obj = found
 
-            if (parent := self.objects.get(v.parent, None)):
+            if (parent := self.objects.get(v.parent, None)) :
                 v.parent_obj = parent
                 parent.children.add(v)
 
-            if (zone := self.objects.get(v.zone, None)):
+            if (zone := self.objects.get(v.zone, None)) :
                 v.zone_obj = zone
                 zone.zoned.add(v)
 
-            if (owner := self.objects.get(v.owner, None)):
+            if (owner := self.objects.get(v.owner, None)) :
                 v.owner_obj = owner
                 owner.owns.add(v)
 
             for fname in v.flags:
-                if (flag := self.flags.get(fname, None)):
+                if (flag := self.flags.get(fname, None)) :
                     flag.objects.add(v)
 
             for pname in v.powers:
-                if (flag := self.powers.get(pname, None)):
+                if (flag := self.powers.get(pname, None)) :
                     flag.objects.add(v)
 
             self.dbrefs[v.dbref] = v
@@ -501,7 +502,7 @@ class PennDB:
             return self.objects.get(dbref, None)
         if not dbref:
             return None
-        if ':' in dbref:
+        if ":" in dbref:
             return self.isobjid(dbref)
         else:
             return self.isdbref(dbref)
@@ -511,13 +512,13 @@ def check_password(old_hash, password):
     if not old_hash:
         return False
     old_hash = old_hash
-    hash_against = old_hash.split(':')[2]
-    check = hashlib.new('sha1')
-    if old_hash.startswith('1:'):
-        check.update(password.encode('utf-8'))
+    hash_against = old_hash.split(":")[2]
+    check = hashlib.new("sha1")
+    if old_hash.startswith("1:"):
+        check.update(password.encode("utf-8"))
         return check.hexdigest() == hash_against
-    elif old_hash.startswith('2:'):
+    elif old_hash.startswith("2:"):
         salt = hash_against[0:2]
         hash_against = hash_against[2:]
-        check.update(f"{salt}{password}".encode('utf-8'))
+        check.update(f"{salt}{password}".encode("utf-8"))
         return check.hexdigest() == hash_against
