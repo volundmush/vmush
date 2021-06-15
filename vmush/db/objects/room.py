@@ -1,8 +1,8 @@
 from typing import Optional
 
-from mudstring.encodings.pennmush import ansi_fun, send_menu
-from mudstring.patches.text import MudText
-from rich.columns import Columns
+from mudrich.encodings.pennmush import ansi_fun, send_menu
+from mudrich.text import Text
+from mudrich.columns import Columns
 
 from pymush.db.objects.base import GameObject
 from pymush.utils import formatter as fmt
@@ -84,7 +84,8 @@ class RoomItemsFormatter(fmt.BaseFormatter):
 class Room(GameObject):
     type_name = "ROOM"
 
-    def render_appearance(self, viewer, parser, internal=False):
+    async def render_appearance(self, entry: "QueueEntry", viewer: "GameObject", internal=False):
+        parser = entry.parser
         out = fmt.FormatList(viewer)
 
         out.add(fmt.Header(self.name))
@@ -108,24 +109,39 @@ class Room(GameObject):
             else:
                 out.add(fmt.Line(desc_eval))
 
-        if (contents := self.contents.all("")) :
-            mobiles = [
-                c
-                for c in contents
-                if c.type_name in ("MOBILE", "PLAYER") and viewer.can_see(c)
-            ]
-            other = [c for c in contents if c not in mobiles and viewer.can_see(c)]
-            if mobiles:
-                out.add(fmt.Subheader("Mobiles"))
-                out.add(RoomPlayersFormatter(mobiles))
-            if other:
-                out.add(fmt.Subheader("Items"))
-                out.add(RoomItemsFormatter(other))
+        if (
+            contents := filter(
+                lambda x: x.active() and viewer.can_perceive(x), self.contents
+            )
+        ) :
+            contents = sorted(
+                contents, key=lambda x: viewer.get_dub_or_keyphrase_for(x)
+            )
+            if contents:
+                mobiles = [
+                    c
+                    for c in contents
+                    if c.type_name in ("MOBILE", "PLAYER") and viewer.can_perceive(c)
+                ]
+                other = [c for c in contents if c not in mobiles and viewer.can_perceive(c)]
+                if mobiles:
+                    out.add(fmt.Subheader("Mobiles"))
+                    out.add(RoomPlayersFormatter(mobiles))
+                if other:
+                    out.add(fmt.Subheader("Items"))
+                    out.add(RoomItemsFormatter(other))
 
-        if (exits := self.contents.all("exits")) :
-            exits = [e for e in exits if viewer.can_see(e)]
-            if exits:
+        if (
+            contents := filter(
+                lambda x: x.active() and viewer.can_perceive(x), self.namespaces["EXIT"]
+            )
+        ) :
+            contents = sorted(
+                contents, key=lambda x: viewer.get_dub_or_keyphrase_for(x)
+            )
+            if contents:
                 out.add(fmt.Subheader("Exits"))
-                out.add(RoomExitFormatter(exits))
+                out.add(RoomExitFormatter(contents))
+
         out.add(fmt.Footer())
         viewer.send(out)

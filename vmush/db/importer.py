@@ -57,18 +57,16 @@ class VolDB(PennDB):
 
 
 class Importer:
-    def __init__(self, interpreter, path):
+    def __init__(self, connection, path):
         self.db = VolDB.from_outdb(path)
-        self.interpreter = interpreter
-        self.entry = interpreter.entry
-        self.connection = interpreter.parser.frame.enactor
-        self.game = self.connection.game
-        self.connection.penn = self
+        self.connection = connection
+        self.game = connection.game
+        connection.penn = self
         self.complete = set()
         self.obj_map = dict()
         self.old_new = dict()
 
-    def create_obj(self, dbobj, mode):
+    async def create_obj(self, dbobj, mode):
         if not (type_class := self.game.obj_classes.get(mode, None)):
             raise ValueError(f"{mode} does not map to a type class!")
         if dbobj.id in self.game.objects:
@@ -87,7 +85,7 @@ class Importer:
         self.game.register_obj(obj)
         return obj
 
-    def import_skeleton(self):
+    async def import_skeleton(self):
         for data, mode in (
             (self.db.list_accounts(), "USER"),
             (self.db.list_groups(), "FACTION"),
@@ -100,9 +98,9 @@ class Importer:
             for k, v in data.items():
                 if k in self.obj_map:
                     continue
-                self.create_obj(v, mode)
+                await self.create_obj(v, mode)
 
-    def process_reverse(self):
+    async def process_reverse(self):
         for old, new in self.old_new.items():
 
             if (zone := self.obj_map.get(old.zone, None)) :
@@ -140,7 +138,7 @@ class Importer:
                 if (location := self.obj_map.get(old.location, None)) :
                     new.location = location
 
-    def process_finalize(self):
+    async def process_finalize(self):
         for old, new in self.old_new.items():
             if old.type == 8:
                 account = new.root_owner
@@ -165,11 +163,11 @@ class Importer:
                                 else 6
                             )
 
-    def run(self):
+    async def run(self):
         try:
-            self.import_skeleton()
-            self.process_reverse()
-            self.process_finalize()
+            await self.import_skeleton()
+            await self.process_reverse()
+            await self.process_finalize()
             self.connection.msg("IMPORT COMPLETE!?")
         except Exception as e:
             import traceback, sys

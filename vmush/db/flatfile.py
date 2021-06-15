@@ -4,7 +4,7 @@ import hashlib
 from collections import defaultdict
 from enum import IntEnum
 
-from mudstring.encodings.pennmush import decode
+from mudrich.encodings.pennmush import decode
 
 from athanor.utils import partial_match
 

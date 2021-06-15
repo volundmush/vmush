@@ -1,5 +1,5 @@
-from rich.text import Text
-from mudstring.encodings.pennmush import ansi_fun, send_menu, ansify, ansi_fun_style
+from mudrich.text import Text
+from mudrich.encodings.pennmush import ansi_fun, send_menu, ansify, ansi_fun_style
 
 from pymush.utils import formatter as fmt
 
