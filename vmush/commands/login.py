@@ -1,13 +1,12 @@
 import re
 from vmush.db.importer import Importer
 from vmush.db.flatfile import check_password
-from pymush.engine.commands.base import (
+from pymush.commands.base import (
     Command,
-    MushCommand,
     CommandException,
     PythonCommandMatcher,
 )
-from pymush.engine.commands.login import (
+from pymush.commands.login import (
     _LoginCommand,
     LoginCommandMatcher as OldCmdMatcher,
 )
@@ -55,28 +54,30 @@ class PennConnect(_LoginCommand):
 
     async def execute(self):
         name, password = self.parse_login(self.usage)
-        candidates = self.entry.game.type_index["PLAYER"]
-        character, error = self.entry.game.search_objects(
-            name, candidates=candidates, exact=True
+        results = await self.db.list_objects(type_name='PLAYER')
+        character, error = await self.entry.game.search_objects(
+            name, candidates=results.data, exact=True
         )
         if error:
             raise CommandException("Sorry, that was an incorrect username or password.")
         if not character:
             raise CommandException("Sorry, that was an incorrect username or password.")
-        if not (old_hash_attr := character.attributes.get("XYXXY")):
+        key, char_data = character
+        result = await self.db.get_object_attribute(key, name="XYXXY")
+        if not (old_hash_attr := result.data):
             raise CommandException("Sorry, that was an incorrect username or password.")
-        if not check_password(old_hash_attr.value.plain, password):
+        if not check_password(old_hash_attr['value'].plain, password):
             raise CommandException("Sorry, that was an incorrect username or password.")
-        root_owner = character.root_owner
-        if not root_owner:
+        print(f"what is: {char_data}")
+        result = await self.db.get_user(char_data['user'])
+        print(f"What is result: {result}")
+        if not result.data:
             raise CommandException(
                 "Character found! However this character has no account. To continue, create an account and bind the character after logging in."
             )
-        if not root_owner.type_name == "USER":
-            raise CommandException(
-                "Character found! However this character has no account. To continue, create an account and bind the character after logging in."
-            )
-        await self.entry.login(root_owner)
+        user = result.data
+
+        await self.entry.login(user, skip_password=True)
 
         self.entry.msg(
             text=f"Your Account password has been set to the password you entered just now.\n"
@@ -85,9 +86,12 @@ class PennConnect(_LoginCommand):
             f"If any imported characters are not appearing, try @pbind <name>=<password>\n"
             f"Should that fail, contact an administrator."
         )
-        await root_owner.change_password(password)
-        for char in root_owner._owner_of_type["PLAYER"].values():
-            char.attributes.wipe("XYXXY")
+
+        hash_pass = self.game.crypt_con.hash(password)
+        await self.db.update_user(key=user['uuid'], password_hash=hash_pass)
+
+        for char in await self.db.list_objects(user=user['uuid']).data:
+            await self.db.set_object_attribute(char, name='XYXXY', value=None)
 
 
 class LoginCommandMatcher(OldCmdMatcher):
